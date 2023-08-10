@@ -25,11 +25,8 @@ class Crawler
     telegramChatId = 377220300;
 
     async run() {
-        // let xvfb = new Xvfb();
-        // xvfb.startSync();
-
         const nightmare = Nightmare({
-            show: false,
+            // show: false,
             // width: 1600,
             // height: 900,
             // openDevTools: {
@@ -80,15 +77,24 @@ class Crawler
 
         // Выбор нужного врача
         this.log(`Ищем врача "${this.doctorName}"`);
-        await nightmare.evaluate(function(name) {
+        const isDoctorFound = await nightmare.evaluate(function(name) {
             const spanList = document.querySelectorAll('span');
-            spanList.forEach(span => {
+            for(const span of spanList) {
                 if(span.textContent.includes(name)) {
                     span.click()
+                    return true;
                 }
-            });
+            }
+
+            return false;
         }, this.doctorName);
-        await nightmare.wait(500)
+        await nightmare.wait(500);
+
+        if(!isDoctorFound) {
+            console.log(`Врач "${this.doctorName}" не найден`);
+            await nightmare.end();
+            return;
+        }
 
         // Удаление попапов, выбор дня записи
         this.log(`Ищем свободную для записи дату`);
@@ -100,6 +106,10 @@ class Crawler
             exampleTable.forEach(table => table.remove());
 
             const calendarWrapper = document.querySelector('div[name="er-content-time-left"]');
+            if(!calendarWrapper) {
+                return;
+            }
+
             const allowedDateButtons = calendarWrapper.querySelectorAll('button.er-button__time_active_free');
             if(allowedDateButtons.length !== 0) {
                 const date = allowedDateButtons[0];
@@ -121,7 +131,15 @@ class Crawler
         this.log(`Ищем свободное для записи время`);
         const time = await nightmare.evaluate(function() {
             const timeWrapper = document.querySelector('div[name="er-content-time-right"]');
+            if(!timeWrapper) {
+                return;
+            }
+
             const timeItemsWrapper = timeWrapper.querySelector('.er-date-time');
+            if(!timeItemsWrapper) {
+                return;
+            }
+
             const freeTimeButtons = timeItemsWrapper.querySelectorAll('.er-button__time:not(.er-button__time_occupied)');
             if(freeTimeButtons.length !== 0) {
                 const timeButton = freeTimeButtons[0];
@@ -195,3 +213,6 @@ class Crawler
 
 const crawler = new Crawler();
 crawler.run();
+// (async() => {
+//     await crawler.run();
+// })();
