@@ -22,20 +22,23 @@ class Crawler
     writeLog = true;
     debug = false;
     restartDelayMs = 5000;
+    showBrowser = true;
 
     telegramApiBaseUrl = 'https://api.telegram.org';
     tgBotApiKey = '6544147089:AAGlQWMw6gEyi5FDiM-NCyyCWSgN5T8Z55A';
     telegramChatId = 377220300;
 
     async run() {
-        const nightmare = Nightmare({
+        const options = this.showBrowser ? {
             show: true,
             width: 1600,
             height: 900,
             openDevTools: {
                 mode: 'attach'
             }
-        });
+        } : {};
+
+        const nightmare = Nightmare(options);
 
         await this.log(`Заходим на сайт "${this.baseUrl}"`);
         await nightmare.goto(this.baseUrl, {
