@@ -39,24 +39,30 @@ class Crawler
         const nightmare = Nightmare(options);
 
         await this.log(`Заходим на сайт "${this.baseUrl}"`);
-        const response = await nightmare.goto(this.baseUrl, {
-            'User-Agent': this.userAgent.random(),
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Accept-Language':'ru,en-US;q=0.9,en;q=0.8,ru-RU;q=0.7',
-            'Cache-Control':'max-age=0',
-            'Connection': 'keep-alive',
-            'Cookie': 'PHPSESSID=8727192bf93156659cbf6166e906c859',
-            'Dnt': '1',
-            'Host': 'medreg.gov39.ru',
-            'Sec-Ch-Ua-Mobile':' ?0',
-            'Sec-Ch-Ua-Platform': "Windows",
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1'
-        });
+
+        try {
+            await nightmare.goto(this.baseUrl, {
+                'User-Agent': this.userAgent.random(),
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept-Language':'ru,en-US;q=0.9,en;q=0.8,ru-RU;q=0.7',
+                'Cache-Control':'max-age=0',
+                'Connection': 'keep-alive',
+                'Cookie': 'PHPSESSID=8727192bf93156659cbf6166e906c859',
+                'Dnt': '1',
+                'Host': 'medreg.gov39.ru',
+                'Sec-Ch-Ua-Mobile':' ?0',
+                'Sec-Ch-Ua-Platform': "Windows",
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1'
+            });
+        } catch(e) {
+            await this.log(`Во время подключения произошла ошибка: ${e.message}`);
+            return false;
+        }
 
         // Попытаться, продолжить
         await this.log(`Кликаем на кнопку "Попытаться, продолжить"`);
