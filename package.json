@@ -2,7 +2,6 @@
   "dependencies": {
     "axios": "^1.4.0",
     "nightmare": "^3.0.2",
-    "node-run-cmd": "^1.0.1",
     "user-agents": "^0.0.2"
   }
 }

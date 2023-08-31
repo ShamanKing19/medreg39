@@ -7,22 +7,20 @@
 
 const request = require('./request.js');
 const Nightmare = require('nightmare');
-const {writeFile} = require('fs');
-
+const {appendFile} = require('fs');
 
 class Crawler
 {
     baseUrl = 'https://medreg.gov39.ru/';
-    userAgent = 'Mozilla/20.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36';
+    // userAgent = 'Mozilla/20.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36';
+    userAgent = require('user-agents');
 
     police = 3954500818000126;
     doctorType = 'Врач-стоматолог';
     doctorName = 'Иляшевич';
 
     writeLog = true;
-    debug = false;
-    restartDelayMs = 5000;
-    showBrowser = true;
+    showBrowser = false;
 
     telegramApiBaseUrl = 'https://api.telegram.org';
     tgBotApiKey = '6544147089:AAGlQWMw6gEyi5FDiM-NCyyCWSgN5T8Z55A';
@@ -41,19 +39,34 @@ class Crawler
         const nightmare = Nightmare(options);
 
         await this.log(`Заходим на сайт "${this.baseUrl}"`);
-        await nightmare.goto(this.baseUrl, {
-            'User-Agent': this.userAgent,
+        const response = await nightmare.goto(this.baseUrl, {
+            'User-Agent': this.userAgent.random(),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language':'ru,en-US;q=0.9,en;q=0.8,ru-RU;q=0.7',
+            'Cache-Control':'max-age=0',
+            'Connection': 'keep-alive',
+            'Cookie': 'PHPSESSID=8727192bf93156659cbf6166e906c859',
+            'Dnt': '1',
+            'Host': 'medreg.gov39.ru',
+            'Sec-Ch-Ua-Mobile':' ?0',
+            'Sec-Ch-Ua-Platform': "Windows",
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1'
         });
 
         // Попытаться, продолжить
         await this.log(`Кликаем на кнопку "Попытаться, продолжить"`);
         await nightmare.click('#D3_NOT_SUPPORTED_NEXT');
-        await nightmare.wait(500)
+        await nightmare.wait(1000)
 
         // Записаться на приём
         await this.log(`Кликаем на кнопку "Записаться на приём"`);
         await nightmare.click('.er-button__top-line-main')
-        await nightmare.wait(500)
+        await nightmare.wait(1000)
 
         // Ввод страхового полиса
         await this.log(`Вводим страховой полис "${this.police}"`);
@@ -101,8 +114,8 @@ class Crawler
 
         if(!isDoctorFound) {
             console.log(`Врач "${this.doctorName}" не найден`);
-            await this.end(nightmare);
-            return;
+            await nightmare.end();
+            return false;
         }
 
         // Удаление попапов, выбор дня записи
@@ -140,13 +153,13 @@ class Crawler
                 return date.innerText;
             }
         });
-        await nightmare.wait(500)
+        await nightmare.wait(1000)
 
         if(!day) {
             await this.log('Нет свободного дня для записи :(');
             // await this.sendTgMessage(`Нет свободного дня для записи у "${this.doctorType}" - "${this.doctorName}"`);
-            await this.end(nightmare);
-            return;
+            await nightmare.end();
+            return false;
         }
 
         // Выбор времени записи
@@ -174,8 +187,8 @@ class Crawler
         await nightmare.wait(1000)
         if(!time) {
             await this.log(`Нет свободного времени для записи на ${day} число :(`);
-            await this.end(nightmare);
-            return;
+            await nightmare.end();
+            return false;
         }
 
         // Нажатие кнопки "Записаться"
@@ -209,26 +222,15 @@ class Crawler
             await this.log(`Почему-то не получилось записаться на ${day} в ${time}`);
         }
 
-        await this.end(nightmare);
-    }
-
-    async end(instance) {
-        await instance.end();
-
-        const path = require('path');
-        const scriptName = path.basename(__filename);
-
-        await new Promise(resolve => setTimeout(resolve, this.restartDelayMs));
-
-        const nrc = require('node-run-cmd');
-        await nrc.run(`node ${scriptName}`);
+        await nightmare.end();
+        return true;
     }
 
     async log(message) {
         if(this.writeLog) {
             console.log(message);
-            // const now = (new Date).toLocaleTimeString();
-            // await writeFile('./logs.txt', `[${now}]: ${message}\n`, () => {});
+            const now = (new Date).toLocaleTimeString();
+            await appendFile('./logs.txt', `[${now}]: ${message}\n`, {}, () => {});
         }
     }
 
@@ -247,8 +249,10 @@ class Crawler
     }
 }
 
-const crawler = new Crawler();
-crawler.run();
-// (async() => {
-//     await crawler.run();
-// })();
+(async() => {
+    const crawler = new Crawler();
+    let success = false;
+    while(!success) {
+        success = await crawler.run();
+    }
+})();
